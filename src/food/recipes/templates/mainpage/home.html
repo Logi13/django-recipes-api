@@ -6,7 +6,7 @@
 {% if cuisine_list %}
     <ul>
     {% for cuisine in cuisine_list %}
-        <li><a href="{% url 'recipes:cuisine' cuisine.id %}">Recipe: {{ cuisine.name }}</a></li>
+        <li><a href="{% url 'recipes:cuisine' cuisine.id %}">Cuisine: {{ cuisine.name }}</a></li>
     {% endfor %}
     </ul>
 {% else %}

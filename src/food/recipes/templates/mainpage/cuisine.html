@@ -2,9 +2,9 @@
 {% load static %}
 
 {% block content %}
-{% if cuisine_recipe %}
+{% if cuisine_list %}
     <ul>
-    {% for recipe in cuisine_recipe %}
+    {% for recipe in cuisine_list %}
         <li><a href="{% url 'recipes:recipe' recipe.id %}">Recipe: {{ recipe.title }}</a></li>
     {% endfor %}
     </ul>

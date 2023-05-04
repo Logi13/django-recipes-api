@@ -12,7 +12,6 @@ import jsonschema
 from pydoc import locate
 
 
-
 from food.settings import allow_caching
 
 from .models import Cuisine, Recipe
@@ -47,8 +46,9 @@ class FetchDataFromDB():
 
     def run(self) -> Union[Recipe, Cuisine]:
         if allow_caching:
-            data = self.saveDataIfExistsInCache()
-        if data is None:
+            self.data = self.saveDataIfExistsInCache()
+        
+        if len(self.data) == 0:
             self.getDataFromDb()
     
     def saveDataIfExistsInCache(self) -> None:
@@ -58,8 +58,10 @@ class FetchDataFromDB():
         cache.set(self.cacheString, self.data, 30*60)
 
     def getDataFromDb(self) -> None:
-        if self.op == "getAll" or self.op == "None" :
+        print(self.op)
+        if self.op == "getAllRecipes" or self.op == "getAllCuisines" or self.op == "None" :
             self.data_querySet = self.dataType.objects.all() # add support o select only columns that are useful
+            print(self.data_querySet)
         elif self.op == "filterById":
             self.data = self.dataType.objects.filter(id=self.parameter).first()
         elif self.op == "filterByCuisine":
@@ -78,13 +80,13 @@ class FetchDataFromDB():
         self.saveDataToCache()
 
 def getAllRecipeData(): # Note: Note 100% sure if this should have Recipe return type since it is a query set
-    dataFetcher = FetchDataFromDB("Recipe", "all_recipes_data")
+    dataFetcher = FetchDataFromDB("Recipe", "all_recipes_data", "getAllRecipes")
     dataFetcher.run()
     dataFetcher.evaluateQuerySet()
     return dataFetcher.data
 
 def getAllCuisineData():
-    dataFetcher = FetchDataFromDB("Cuisine", "all_cuisines_data")
+    dataFetcher = FetchDataFromDB("Cuisine", "all_cuisines_data", "getAllCuisines")
     dataFetcher.run()
     dataFetcher.evaluateQuerySet()
     return dataFetcher.data
@@ -156,11 +158,17 @@ def recipe(request, recipeId):
 def recipe_api(request, recipeId):
     try:
         recipe = getRecipeById(recipeId)
-        serialized_data = serializers.serialize('json', recipe)
+        recipe_data = {
+            "title": recipe.title,
+            "description": recipe.description,
+            "ingredients": recipe.ingredients,
+            "created_at": recipe.created_at,
+            "author": recipe.author.username
+        }
     except Recipe.DoesNotExist:
         raise Http404("Recipe does not exist")
     
-    return HttpResponse(json.dumps(serialized_data), content_type='application/json')
+    return JsonResponse(recipe_data, content_type='application/json')
 
 def cuisine(request, cuisineId):
     context = {}
@@ -175,10 +183,13 @@ def cuisine(request, cuisineId):
 def cuisine_api(request, cuisineId):
     try:
         cuisine = getCuisineById(cuisineId)
+        cuisine_data = {
+            "name": cuisine.name
+        }
     except Recipe.DoesNotExist:
         raise Http404("Cusine does not exist")
     
-    return JsonResponse(cuisine, content_type='application/json')
+    return JsonResponse(cuisine_data, content_type='application/json')
 
 @csrf_exempt
 def create_new_recipe(request):

@@ -1,0 +1,7 @@
+<p>Add a new recipe</p>
+
+<form action="{% url 'polls:vote' question.id %}" method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Save">
+</form>

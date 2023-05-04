@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block content %}
+{% if cuisine_list %}
+    <ul>
+    {% for cuisine in cuisine_list %}
+        <li><a href="{% url 'recipes:cuisine' cuisine.id %}">Recipe: {{ cuisine.name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No recipes are available.</p>
+{% endif %}
+
+{% if recipe_list %}
+    <ul>
+    {% for recipe in recipe_list %}
+        <li><a href="{% url 'recipes:recipe' recipe.id %}">Recipe: {{ recipe.title }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No recipes are available.</p>
+{% endif %}
+
+{% comment %}
+<a href="{% url 'recipes:create' %}">Add recipe</a>
+{% endcomment %}
+
+{% endblock %}

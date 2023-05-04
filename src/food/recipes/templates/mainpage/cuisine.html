@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% if cuisine_recipe %}
+    <ul>
+    {% for recipe in cuisine_recipe %}
+        <li><a href="{% url 'recipes:recipe' recipe.id %}">Recipe: {{ recipe.title }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No recipes are available.</p>
+{% endif %}
+{% endblock %}

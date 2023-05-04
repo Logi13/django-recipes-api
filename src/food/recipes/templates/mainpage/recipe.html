@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<h1>{{ recipe.title }}</h1>
+<br>
+Cuisine: {{ recipe.cuisine}}
+<br>
+<h3>Description:</h3>
+<p>{{ recipe.description}}</p>
+<br>
+<h3>Ingredients:</h3>
+<p>{{ recipe.ingredients}}</p>
+<br>
+<h3>Recipe Posted:</h3>
+<p>{{ recipe.create_data}}</p>
+
+<h3>Author:</h3>
+<p>{{recipe.author.username}}</p>
+
+<h2>Comments:</h2>
+
+{% endblock %}

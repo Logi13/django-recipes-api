@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+
+<html dir="ltr" lang={{ LANGUAGE_CODE }}>
+
+    <head>
+        <!-- <link rel="stylesheet" href="{% static "css/style.css" %}" type="text/css" /> -->
+    </head>
+
+    <body>
+        {% block content %}
+        {% endblock %}
+
+        <!-- Internal JavaScripts
+	    ============================================= -->
+
+        <!-- External JavaScripts
+	    ============================================= -->
+        <!-- <script src="{% static "js/modernizr-custom.js" %}" type="text/javascript"></script>
+        
+        <script>
+            // webp supported by default
+            console.log("Script Fired")
+            var webpSupport;
+            var suffix = ".webp"
+            Modernizr.on('webp', function (webpSupport) {
+                if (!webpSupport) { // not-supported
+                    suffix = ".png"
+                    var count = document.getElementsByClassName('modernizr-image').length
+                    for (var i = 0; i < count; i++) {
+                        //document.getElementsByClassName('modernizr-image')[i].src  = document.getElementsByClassName('modernizr-image')[i].attributes['src'].value.split(".")[0] + suffix;
+                    }
+                }
+                console.log("[0]Browser supports webp format:", webpSupport);
+            });
+        </script> -->
+
+    </body>
+
+
+</html>

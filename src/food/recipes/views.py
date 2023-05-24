@@ -5,6 +5,10 @@ from django.core import serializers
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt
 
+from django.db.models import F
+
+from django.db import transaction
+
 from typing import Union
 import threading
 import json
@@ -21,90 +25,21 @@ from .validators import recipeValidation, cuisineValidation
 
 
 # ----------------- Start Helpers -----------------
-'''
-getAllRecipeData() -> returns Recipe as a querySet
-might be worth to check Celery for asynchronous operations
-@TODO expand to accomodate more complex queries, using ex. select_related('author') for the recipe and post,etc
-@TODO have a look to abstract and make derived classes from base as operations are pretty much the same and it might be more clean
-
-'''
-class FetchDataFromDB():
-    data = []
-    data_querySet = None
-    dataType: Union[Recipe, Cuisine] = None
-    cacheString = "None"
-    request = None
-    op = "None"
-    parameter = None
-
-    def __init__(self, dataType: Union[Recipe, Cuisine], cacheString: str, operation = "None", parameter = None) -> None:
-        self.data = []
-        self.dataType = globals()[dataType]
-        self.cacheString = cacheString
-        self.op = operation
-        self.parameter = parameter
-
-    def run(self) -> Union[Recipe, Cuisine]:
-        if allow_caching:
-            self.data = self.saveDataIfExistsInCache()
-        
-        if len(self.data) == 0:
-            self.getDataFromDb()
-    
-    def saveDataIfExistsInCache(self) -> None:
-        self.data_querySet = cache.get(self.cacheString)
-
-    def saveDataToCache(self) -> None:
-        cache.set(self.cacheString, self.data, 30*60)
-
-    def getDataFromDb(self) -> None:
-        print(self.op)
-        if self.op == "getAllRecipes" or self.op == "getAllCuisines" or self.op == "None" :
-            self.data_querySet = self.dataType.objects.all() # add support o select only columns that are useful
-            print(self.data_querySet)
-        elif self.op == "filterById":
-            self.data = self.dataType.objects.filter(id=self.parameter).first()
-        elif self.op == "filterByCuisine":
-            self.data_querySet = self.dataType.objects.filter(cuisine=self.parameter)
-        elif self.op == "getById":
-            self.data = self.dataType.objects.get(self.parameter)
-
-    '''
-    If the values are a query set we need to evaluate the data
-    There are cases that the data might be too big and inneficient to load in memory
-    @TODO make sure to have a way to load data from a queryset when all is asked (pagination?)
-    '''
-    def evaluateQuerySet(self):
-        for entry in self.data_querySet.iterator():
-            self.data.append(entry)
-        self.saveDataToCache()
 
 def getAllRecipeData(): # Note: Note 100% sure if this should have Recipe return type since it is a query set
-    dataFetcher = FetchDataFromDB("Recipe", "all_recipes_data", "getAllRecipes")
-    dataFetcher.run()
-    dataFetcher.evaluateQuerySet()
-    return dataFetcher.data
+    return Recipe.objects.all()
 
 def getAllCuisineData():
-    dataFetcher = FetchDataFromDB("Cuisine", "all_cuisines_data", "getAllCuisines")
-    dataFetcher.run()
-    dataFetcher.evaluateQuerySet()
-    return dataFetcher.data
+    return Cuisine.objects.all()
 
 def getCuisineById(cuisineId) -> Cuisine:
-    dataFetcher = FetchDataFromDB("Cuisine", f'cuisine_{cuisineId}_data', "filterById", cuisineId)
-    dataFetcher.run()
-    return dataFetcher.data
+    return Cuisine.objects.get(id=cuisineId)
 
 def getRecipeById(recipeId) -> Recipe:
-    dataFetcher = FetchDataFromDB("Recipe", f'recipe_{recipeId}_data', "filterById", recipeId)
-    dataFetcher.run()
-    return dataFetcher.data
+    return Cuisine.objects.get(id=recipeId)
 
 def getRecipesByCuisine(cuisine, cuisineId):
-    dataFetcher = FetchDataFromDB("Recipe", f'cuisineId_{cuisineId}_recipe_data', "filterByCuisine", cuisine)
-    dataFetcher.run()
-    return dataFetcher.data
+    return Recipe.objects.get(cuisine)
 
 # ----------------- End Helpers -----------------
 
@@ -159,6 +94,7 @@ def recipe_api(request, recipeId):
     try:
         recipe = getRecipeById(recipeId)
         recipe_data = {
+            "id": recipe.id,
             "title": recipe.title,
             "description": recipe.description,
             "ingredients": recipe.ingredients,
@@ -184,6 +120,7 @@ def cuisine_api(request, cuisineId):
     try:
         cuisine = getCuisineById(cuisineId)
         cuisine_data = {
+            "id": cuisine.id,
             "name": cuisine.name
         }
     except Recipe.DoesNotExist:
@@ -192,6 +129,7 @@ def cuisine_api(request, cuisineId):
     return JsonResponse(cuisine_data, content_type='application/json')
 
 @csrf_exempt
+@transaction.non_atomic_requests
 def create_new_recipe(request):
     if request.method == 'POST':
         try:
@@ -199,17 +137,19 @@ def create_new_recipe(request):
             jsonschema.validate(data, recipeValidation())
 
             cuisine = getCuisineById(data["cuisine"])
-            if cuisine is None:
-                response_data = {'error': 'Json not correct, validation error'}
-                return JsonResponse(response_data, status=400)
-            
             instance = Recipe.objects.create(title=data["title"], description=data["description"], ingredients=data["ingredients"], cuisine=cuisine)
             instance.save()
             response_data = {'message': 'Data received and processed successfully'}
             return JsonResponse(response_data)
+        except Cuisine.DoesNotExist:
+            response_data = {'error': 'Cuisine does not exist'}
+            return JsonResponse(response_data, status=400)
         except jsonschema.ValidationError:
             response_data = {'error': 'Json not correct, validation error'}
             return JsonResponse(response_data, status=400)
+        except Exception as e:
+            response_data = {'error': f'Something went very wrong! {e}'}
+            return JsonResponse(response_data, status=500)
     else:
         response_data = {'error': 'Method not allowed'}
         return JsonResponse(response_data, status=405)
@@ -223,8 +163,9 @@ def create_new_cuisine(request):
             
             instance = Cuisine.objects.create(**data)
             instance.save()
-            response_data = {'message': 'Data received and processed successfully'}
+            response_data = {'message': 'Data received and processed successfully.'}
             return JsonResponse(response_data)
+        
         except jsonschema.ValidationError:
             response_data = {'error': 'Json not correct, validation error'}
             return JsonResponse(response_data, status=400)

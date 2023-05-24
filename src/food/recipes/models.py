@@ -26,11 +26,11 @@ class Recipe(models.Model):
     ingredients = models.TextField()
     created_at = models.DateTimeField("date published", auto_now_add=True)
     cuisine = models.ForeignKey(Cuisine, on_delete=models.CASCADE, related_name="cuisine", blank=True, default=1)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recipe_author", blank=True, default=1) # if we want the user to be able to post anonymously we would have an anon user to assign the comments to
+    #author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recipe_author", blank=True, default=1) # if we want the user to be able to post anonymously we would have an anon user to assign the comments to
 
 class Comment(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField("date published", auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comment_author", blank=True, default=1)
+    #author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comment_author", blank=True, default=1)
     recipePost = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="recipe", blank=True, default=1)
